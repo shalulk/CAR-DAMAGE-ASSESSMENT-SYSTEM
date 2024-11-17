@@ -1,0 +1,20 @@
+make_model_detector
+
+!pip install roboflow
+
+from roboflow import Roboflow
+rf = Roboflow(api_key="DjWjPV0LPOfwwADoMczA")
+project = rf.workspace("shalini").project("make-and-model-gfsnx")
+version = project.version(1)
+dataset = version.download("yolov8")
+
+damage_detector
+
+!pip install roboflow
+
+from roboflow import Roboflow
+rf = Roboflow(api_key="DjWjPV0LPOfwwADoMczA")
+project = rf.workspace("shalini").project("car-damages-godhu")
+version = project.version(1)
+dataset = version.download("yolov8")
+

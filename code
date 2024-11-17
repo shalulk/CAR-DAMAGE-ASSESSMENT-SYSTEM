@@ -1,0 +1,85 @@
+from ultralytics import YOLO
+import cv2
+
+# Load YOLO models for make/model and damage detection
+make_model_detector = YOLO("path/to/make_model.pt") 
+damage_detector = YOLO("path/to/damage_severity.pt")  
+
+# List of input images for different views
+input_images = {
+    "front": "path/to/front_image.jpg",
+    "back": "path/to/back_image.jpg",
+    "front_side": "path/to/front_and_side_image.jpg",
+    "back_side": "path/to/back_and_side_image.jpg",
+    "front_other_side": "path/to/front_and_other_side_image.jpg",
+    "back_other_side": "path/to/back_and_other_side_image.jpg",
+    "top": "path/to/top_image.jpg"
+}
+
+# Function to detect make and model and draw bounding boxes
+def detect_make_and_model(image_path, model):
+    image = cv2.imread(image_path)
+    results = model(image_path)
+    make_model_output = ""
+    
+    for result in results[0].boxes:
+        label = model.names[int(result.cls)]
+        confidence = result.conf[0]
+        make_model_output = f"{label} {confidence:.2f}"
+        
+        # Draw bounding box
+        x1, y1, x2, y2 = map(int, result.xyxy[0])
+        cv2.rectangle(image, (x1, y1), (x2, y2), (255, 0, 0), 2)  # Blue box for make/model
+        cv2.putText(image, make_model_output, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+    
+    cv2.imshow("Make and Model Detection", image)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    return make_model_output
+
+# Function to detect damage information and draw bounding boxes
+def detect_damage_info(image_path, model):
+    image = cv2.imread(image_path)
+    damage_outputs = []
+    
+    results = model(image_path)
+    for result in results[0].boxes:
+        label = model.names[int(result.cls)]
+        confidence = result.conf[0]
+        
+        # Parse label: assume labels are formatted as "location_part_type_severity"
+        label_parts = label.split('_')
+        if len(label_parts) >= 4:
+            location = label_parts[0]
+            part = label_parts[1]
+            damage_type = label_parts[2]
+            severity = label_parts[3]
+            output_text = f"{location.capitalize()} {part.capitalize()} {damage_type} {severity} repair {confidence:.2f}"
+            damage_outputs.append(output_text)
+            
+            # Draw bounding box
+            x1, y1, x2, y2 = map(int, result.xyxy[0])
+            cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 2)  # Green box for damage
+            cv2.putText(image, output_text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+    
+    cv2.imshow("Damage Detection", image)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    return damage_outputs
+
+# Process images and display results with bounding boxes
+def process_images():
+    # Detect make and model on the front image
+    make_model = detect_make_and_model(input_images["front"], make_model_detector)
+    print(f"1. {make_model}")
+
+    # Process and display damage information on other views
+    image_keys = ["front_side", "back_side", "front_other_side", "back_other_side", "top"]
+    for idx, image_key in enumerate(image_keys, start=2):
+        damage_info = detect_damage_info(input_images[image_key], damage_detector)
+        if damage_info:
+            for info in damage_info:
+                print(f"{idx}. {info}")
+
+# Run the processing function
+process_images()
